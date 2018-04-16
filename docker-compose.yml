@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+
+  db:
+    image: mariadb:5.5
+    environment:
+      - MYSQL_ROOT_PASSWORD=secret
+    volumes:
+      - ./db:/var/lib/mysql
+#      - ./mysql-utf8.cnf:/etc/mysql/conf.d/utf8.cnf:ro
+    ports:
+      - 127.0.0.1:3307:3306
+
+  phpmyadmin:
+      image: phpmyadmin/phpmyadmin
+      environment:
+      - PMA_ARBITRARY=1
+      ports:
+      - 127.0.0.1:8013:80
+      volumes:
+      - /sessions
