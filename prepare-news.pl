@@ -26,14 +26,9 @@ my $schema = STISRV13->connect(-password => $secrets->{mysql_password});
 sub ancestries_sitemap {
   my %ancestries;
   foreach my $article (Article->all($schema, $website_map)) {
-    foreach my $v ($article->get_vertices()) {
-      my @ancestry = $article->ancestry($v);
-      my $ancestry_path = join(" ", map {
-        $_ = $_->{label};
-        s|^https://sti.epfl.ch||;
-        $_
-      } @ancestry);
-      push @{$ancestries{$ancestry_path}}, $v->{label};
+    my @urls_and_ancestry_paths = $article->urls_and_ancestry_paths();
+    while(my ($url, $path) = splice(@urls_and_ancestry_paths, 0, 2)) {
+      push @{$ancestries{$path}}, $url;
     }
   }
   return \%ancestries;
@@ -132,9 +127,20 @@ sub get_url {
   return wantarray? @lang_qualified_urls : $lang_qualified_urls[0];
 }
 
-sub ancestry {
-  my ($self, $vertex) = @_;
-  return $self->{website_map}->ancestry($vertex);
+sub urls_and_ancestry_paths {
+  my ($self) = @_;
+
+  my @retval;
+  foreach my $vertex ($self->get_vertices()) {
+    my $url = $vertex->{label};
+    my $ancestry_path = join(" ", map {
+      $_ = $_->{label};
+      s|^https://sti.epfl.ch||;
+      $_
+    } $self->{website_map}->ancestry($vertex));
+    push @retval, ($url, $ancestry_path);
+  }
+  return @retval;
 }
 
 # DBIx::Class::_Util freaks out when DESTROY is called twice, which it would
