@@ -16,8 +16,7 @@ use strict;
 use base qw(STISRV13::DatabaseRow);
 
 use Debug::Statements;
-Debug::Statements::setFlag('$STISRV13::Article::d');
-our ($d) = ($ENV{DEBUG} or '') =~ m/STISRV13=(\d+)/;
+# Debug::Statements::setFlag('$STISRV13::Article::d'); our $d = 1;
 
 use String::Similarity qw(similarity);
 use Lingua::Identify qw(langof);

@@ -22,11 +22,11 @@ sub decode_gml {
 
       graph :         'graph'  '['      kvs    thing_in_graph(s?) ']' {
          my ( undef,  undef,   undef,  $kvs,  $things) = @item;
-         $return = {
+         $return = new GML::Graph(
            %$kvs,
            edges    => [grep { $_->isa("GML::Edge") }   @$things],
            vertices => [grep { $_->isa("GML::Vertex") } @$things]
-         };
+         );
       }
 
       thing_in_graph : node | edge
@@ -58,4 +58,16 @@ sub GML::Edge::new {
 sub GML::Vertex::new {
   my $class = shift;
   return bless { @_ }, $class;
+}
+
+package GML::Graph;
+
+sub new {
+  my ($class, %opts) = @_;
+  return bless { %opts }, $class;
+}
+
+sub find_vertices_by_label {
+  my ($self, $label) = @_;
+  return grep { $_->{label} eq $label } @{$self->{vertices}};
 }
