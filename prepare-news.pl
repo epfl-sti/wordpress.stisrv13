@@ -25,7 +25,7 @@ my $schema = STISRV13->connect(-password => $secrets->{mysql_password});
 
 # say YAML::Dump([map { $_->essentials } Article->all($schema, $website_map)]);
 
-sub WIP_ancestries_sitemap {
+sub ancestries_sitemap {
   my %ancestries;
   foreach my $article (Article->all($schema, $website_map)) {
     my $v = $article->get_main_vertex();
@@ -40,7 +40,7 @@ sub WIP_ancestries_sitemap {
   }
   return \%ancestries;
 }
-say YAML::Dump(WIP_ancestries_sitemap);
+say YAML::Dump(ancestries_sitemap);
 
 ##############################################
 package Article;
