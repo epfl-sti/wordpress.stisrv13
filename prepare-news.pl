@@ -23,7 +23,24 @@ my $website_map = WebsiteMap->new(
   scalar(io('sti-website.gml')->slurp));
 my $schema = STISRV13->connect(-password => $secrets->{mysql_password});
 
-say YAML::Dump([map { $_->essentials } Article->all($schema, $website_map)]);
+# say YAML::Dump([map { $_->essentials } Article->all($schema, $website_map)]);
+
+sub WIP_all_ancestries {
+  my %ancestries;
+  foreach my $article (Article->all($schema, $website_map)) {
+    foreach my $v ($article->get_website_map_vertices()) {
+      my @ancestry = $article->ancestry($v);
+      my $ancestry_path = join(" ", map {
+        $_ = $_->{label};
+        s|^https://sti.epfl.ch||;
+        $_
+      } @ancestry);
+      $ancestries{$ancestry_path} = 1;
+    }
+  }
+  return sort keys %ancestries;
+}
+say YAML::Dump([WIP_all_ancestries]);
 
 ##############################################
 package Article;
@@ -82,8 +99,8 @@ sub get_urls {
 }
 
 sub ancestry {
-  my ($self) = @_;
-  return $self->{website_map}->ancestry($self);
+  my ($self, $vertex) = @_;
+  return $self->{website_map}->ancestry($vertex);
 }
 
 # DBIx::Class::_Util freaks out when DESTROY is called twice, which it would

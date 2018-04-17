@@ -71,3 +71,32 @@ sub find_vertices_by_label {
   my ($self, $label) = @_;
   return grep { $_->{label} eq $label } @{$self->{vertices}};
 }
+
+sub _find_vertex_by_id {
+  my ($self, $id) = @_;
+  my @vertex = grep { $_->{id} eq $id } @{$self->{vertices}};
+  return $vertex[0];
+}
+
+sub ancestor {
+  my ($self, $vertex) = @_;
+  foreach my $e (@{$self->{edges}}) {
+    if ($e->{source} == $vertex->{id} &&
+        $e->{label} eq 'parent') {
+          return $self->_find_vertex_by_id($e->{target});
+    }
+  }
+  return;
+}
+
+sub ancestry {
+  my ($self, $vertex) = @_;
+  my @ancestry;
+  for(my $ancestor = $self->ancestor($vertex); $ancestor;
+      do {$vertex = $ancestor; $ancestor = $self->ancestor($vertex)}
+     ) {
+    last if grep { $ancestor->{id} == $_->{id} } @ancestry;  # Found a loop
+    push(@ancestry, $ancestor);
+  }
+  return @ancestry;
+}

@@ -16,7 +16,8 @@ sub new {
 }
 
 sub ancestry {
-  my ($self, $article) = @_;
+  my ($self, $vertex) = @_;
+  return $self->_website_graph->ancestry($vertex);
 }
 
 sub _website_graph {
