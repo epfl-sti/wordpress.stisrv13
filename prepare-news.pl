@@ -28,15 +28,15 @@ my $schema = STISRV13->connect(-password => $secrets->{mysql_password});
 sub ancestries_sitemap {
   my %ancestries;
   foreach my $article (Article->all($schema, $website_map)) {
-    my $v = $article->get_main_vertex();
-    next if (! $v);
-    my @ancestry = $article->ancestry($v);
-    my $ancestry_path = join(" ", map {
-      $_ = $_->{label};
-      s|^https://sti.epfl.ch||;
-      $_
-    } @ancestry);
-    push @{$ancestries{$ancestry_path}}, ($article->get_main_url())[0];
+    foreach my $v ($article->get_vertices()) {
+      my @ancestry = $article->ancestry($v);
+      my $ancestry_path = join(" ", map {
+        $_ = $_->{label};
+        s|^https://sti.epfl.ch||;
+        $_
+      } @ancestry);
+      push @{$ancestries{$ancestry_path}}, $v->{label};
+    }
   }
   return \%ancestries;
 }
@@ -82,7 +82,7 @@ sub essentials {
   my $self = shift;
   if (! $self->{essentials}) {
     $self->{essentials} = { %{$self->{dbic}->essentials($self->{lang})} };
-    $self->{essentials}->{urls} = $self->get_all_urls();
+    $self->{essentials}->{urls} = [$self->get_all_urls()];
   }
 
   return $self->{essentials};
@@ -91,7 +91,7 @@ sub essentials {
 sub get_main_vertex {
   my ($self) = @_;
   if (! exists $self->{vertex}) {
-    my $url = $self->get_main_url();
+    my $url = $self->get_url();
     if (! $url) {
       $self->{vertex} = undef;
     } else {
@@ -101,26 +101,35 @@ sub get_main_vertex {
   return $self->{vertex};
 }
 
+sub get_vertices {
+  my ($self) = @_;
+  return map { $self->{website_map}->find_vertex($_) }
+    $self->get_url();  # Plural ('coz wantarray)
+}
+
 sub get_all_urls {
   my ($self) = @_;
   return $self->{website_map}->get_urls($self->rss_id, $self->lang);
 }
 
-sub get_main_url {
+sub get_url {
   my ($self) = @_;
+
   my @urls = $self->get_all_urls();
   return if (! @urls);
+
   my $lang = $self->lang;
   my @lang_qualified_urls = grep { m/-${lang}.html$/ } @urls;
+
   if (! @lang_qualified_urls) {
     warn $self->moniker . " has no language-qualified URLs; picking " . $urls[0] . " as main URL";
     return $urls[0];
-  } elsif (scalar(@lang_qualified_urls) > 1) {
+  } elsif ((! wantarray)  &&  scalar(@lang_qualified_urls) > 1) {
     warn sprintf("%s has multiple language-qualified URLs (%s); " .
                    "picking the first one as the main URL",
                  $self->moniker, join(" ", @lang_qualified_urls));
   }
-  return $lang_qualified_urls[0];
+  return wantarray? @lang_qualified_urls : $lang_qualified_urls[0];
 }
 
 sub ancestry {
