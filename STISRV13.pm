@@ -45,7 +45,7 @@ sub webmaster_author {
   # STI staff
   m/Dietrich|Reinhard/              && return "dreinhar";
   m/\wUtz\w/                        && return "dutz";
-  m/^PGB/                           && return "pgaybalm";
+  m/^(?:PGB|Philippe)/              && return "pgaybalm";
   m/Gay.Balmaz/                     && return "pgaybalm";
   m/Homeira/                        && return "sunderla";
   m/^Ingrid/                        && return "ifischer";
