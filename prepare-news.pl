@@ -78,6 +78,9 @@ sub essentials {
   if (! $self->{essentials}) {
     $self->{essentials} = { %{$self->{dbic}->essentials($self->{lang})} };
     $self->{essentials}->{urls} = [$self->get_all_urls()];
+    if (my @categories = $self->get_categories()) {
+      $self->{essentials}->{categories} = \@categories;
+    }
   }
 
   return $self->{essentials};
@@ -141,6 +144,36 @@ sub urls_and_ancestry_paths {
     push @retval, ($url, $ancestry_path);
   }
   return @retval;
+}
+
+sub get_categories {
+  my ($self) = @_;
+
+  my $lang = $self->lang;
+  my @categories;
+
+  my @urls_and_ancestry_paths = $self->urls_and_ancestry_paths();
+  while(my (undef, $path) = splice(@urls_and_ancestry_paths, 0, 2)) {
+      local $_ = $path;
+      if (m/Materials-News|Materiaux-News/) {
+        push(@categories, "imt-news-$lang");
+      } elsif (m|/igm/news|) {
+        push(@categories, "igm-news-$lang");
+      } elsif (m{/IMTRe(?:search|cherche)}) {
+        push(@categories, "imt-news-$lang");
+      } elsif (m{/electrical-engineering|/genie-electrique}) {
+        push(@categories, "iel-news-$lang");
+      } elsif (m{(?:^| )(?:/actu|/news)}) {
+        push(@categories, "news");
+      } elsif (m{(/cent(?:er|re)s)}) {
+        push(@categories, "centers-$lang");
+      } else {
+        die "Don't know how to categorize this ancestry path: $path";
+      }
+  }
+
+  my %categories = map { $_ => 1 } @categories;
+  return sort keys %categories;
 }
 
 # DBIx::Class::_Util freaks out when DESTROY is called twice, which it would
