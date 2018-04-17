@@ -24,8 +24,9 @@ my $website_map = WebsiteMap->new(
 my $schema = STISRV13->connect(-password => $secrets->{mysql_password});
 
 sub ancestries_sitemap {
+  my (@articles) = @_;
   my %ancestries;
-  foreach my $article (Article->all($schema, $website_map)) {
+  foreach my $article (@articles) {
     my @urls_and_ancestry_paths = $article->urls_and_ancestry_paths();
     while(my ($url, $path) = splice(@urls_and_ancestry_paths, 0, 2)) {
       push @{$ancestries{$path}}, $url;
@@ -34,8 +35,9 @@ sub ancestries_sitemap {
   return \%ancestries;
 }
 
-io("news-sitemap.yaml")->print(YAML::Dump(ancestries_sitemap));
-io("news.yaml")->print(YAML::Dump([map { $_->essentials } Article->all($schema, $website_map)]));
+my @articles = Article->all($schema, $website_map);
+io("news-sitemap.yaml")->print(YAML::Dump(ancestries_sitemap(@articles)));
+io("news.yaml")->print(YAML::Dump([map { $_->essentials } @articles]));
 
 ##############################################
 package Article;
