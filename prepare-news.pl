@@ -25,22 +25,22 @@ my $schema = STISRV13->connect(-password => $secrets->{mysql_password});
 
 # say YAML::Dump([map { $_->essentials } Article->all($schema, $website_map)]);
 
-sub WIP_all_ancestries {
+sub WIP_ancestries_sitemap {
   my %ancestries;
   foreach my $article (Article->all($schema, $website_map)) {
-    foreach my $v ($article->get_website_map_vertices()) {
-      my @ancestry = $article->ancestry($v);
-      my $ancestry_path = join(" ", map {
-        $_ = $_->{label};
-        s|^https://sti.epfl.ch||;
-        $_
-      } @ancestry);
-      $ancestries{$ancestry_path} = 1;
-    }
+    my $v = $article->get_main_vertex();
+    next if (! $v);
+    my @ancestry = $article->ancestry($v);
+    my $ancestry_path = join(" ", map {
+      $_ = $_->{label};
+      s|^https://sti.epfl.ch||;
+      $_
+    } @ancestry);
+    push @{$ancestries{$ancestry_path}}, ($article->get_main_url())[0];
   }
-  return sort keys %ancestries;
+  return \%ancestries;
 }
-say YAML::Dump([WIP_all_ancestries]);
+say YAML::Dump(WIP_ancestries_sitemap);
 
 ##############################################
 package Article;
@@ -73,29 +73,54 @@ sub new {
 
 sub lang { shift->{lang} }
 
+sub moniker {
+  my ($self) = @_;
+  return sprintf("<Article rss_id=%d lang=%s>", $self->rss_id, $self->lang);
+}
+
 sub essentials {
   my $self = shift;
   if (! $self->{essentials}) {
     $self->{essentials} = { %{$self->{dbic}->essentials($self->{lang})} };
-    my @vertices = $self->get_website_map_vertices();
-    $self->{essentials}->{urls} = [ map { $_->{label} } @vertices ];
+    $self->{essentials}->{urls} = $self->get_all_urls();
   }
 
   return $self->{essentials};
 }
 
-sub get_website_map_vertices {
+sub get_main_vertex {
   my ($self) = @_;
-  if (! $self->{vertices}) {
-    $self->{vertices} =
-      [ map { $self->{website_map}->find_vertices($_) } ($self->get_urls()) ];
+  if (! exists $self->{vertex}) {
+    my $url = $self->get_main_url();
+    if (! $url) {
+      $self->{vertex} = undef;
+    } else {
+      $self->{vertex} = $self->{website_map}->find_vertex($url);
+    }
   }
-  return @{$self->{vertices}}
+  return $self->{vertex};
 }
 
-sub get_urls {
+sub get_all_urls {
   my ($self) = @_;
   return $self->{website_map}->get_urls($self->rss_id, $self->lang);
+}
+
+sub get_main_url {
+  my ($self) = @_;
+  my @urls = $self->get_all_urls();
+  return if (! @urls);
+  my $lang = $self->lang;
+  my @lang_qualified_urls = grep { m/-${lang}.html$/ } @urls;
+  if (! @lang_qualified_urls) {
+    warn $self->moniker . " has no language-qualified URLs; picking " . $urls[0] . " as main URL";
+    return $urls[0];
+  } elsif (scalar(@lang_qualified_urls) > 1) {
+    warn sprintf("%s has multiple language-qualified URLs (%s); " .
+                   "picking the first one as the main URL",
+                 $self->moniker, join(" ", @lang_qualified_urls));
+  }
+  return $lang_qualified_urls[0];
 }
 
 sub ancestry {

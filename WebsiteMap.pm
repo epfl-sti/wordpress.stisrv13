@@ -49,12 +49,13 @@ sub _newsatone_inverted {
 
 sub get_urls {
   my ($self, $rss_id, $lang) = @_;
-  return @{$self->_newsatone_inverted->{$rss_id}->{$lang}};
+  return grep {! m|/op/edit/| } @{$self->_newsatone_inverted->{$rss_id}->{$lang}};
 }
 
-sub find_vertices {
+sub find_vertex {
   my ($self, $url) = @_;
-  return $self->_website_graph->find_vertices_by_label($url);
+  my @results = $self->_website_graph->find_vertices_by_label($url);
+  return wantarray ? @results: $results[0];
 }
 
 1;
