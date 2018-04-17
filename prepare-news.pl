@@ -23,8 +23,6 @@ my $website_map = WebsiteMap->new(
   scalar(io('sti-website.gml')->slurp));
 my $schema = STISRV13->connect(-password => $secrets->{mysql_password});
 
-# say YAML::Dump([map { $_->essentials } Article->all($schema, $website_map)]);
-
 sub ancestries_sitemap {
   my %ancestries;
   foreach my $article (Article->all($schema, $website_map)) {
@@ -40,7 +38,9 @@ sub ancestries_sitemap {
   }
   return \%ancestries;
 }
-say YAML::Dump(ancestries_sitemap);
+
+io("news-sitemap.yaml")->print(YAML::Dump(ancestries_sitemap));
+io("news.yaml")->print(YAML::Dump([map { $_->essentials } Article->all($schema, $website_map)]));
 
 ##############################################
 package Article;
