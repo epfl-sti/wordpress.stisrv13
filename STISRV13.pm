@@ -15,6 +15,8 @@ package STISRV13::Article;
 use strict;
 use base qw(STISRV13::DatabaseRow);
 
+use STISRV13::Date;
+
 use Debug::Statements;
 # Debug::Statements::setFlag('$STISRV13::Article::d'); our $d = 1;
 
@@ -23,6 +25,18 @@ use Lingua::Identify qw(langof);
 
 __PACKAGE__->table('rss');
 __PACKAGE__->add_columns(qw(rss_id author headline entete eng fra pubdate cible superstructure supertarget img imglink externallink alt view domain forward));
+
+sub pubdate_datetime {
+  my ($self) = @_;
+  my $pubdate_txt = $self->pubdate;
+  return STISRV13::Date->parse($pubdate_txt);
+}
+
+sub pubdate_epoch {
+  my ($self) = @_;
+  return unless (my $pubdate = $self->pubdate_datetime());
+  return $pubdate->epoch;
+}
 
 sub webmaster_author {
   my $self = shift;
@@ -142,6 +156,7 @@ sub essentials {
     webmaster_author    => scalar $self->webmaster_author,
     in_the_media_author => scalar $self->in_the_media_author,
     corp_author         => scalar $self->corp_author,
+    pubdate             => $self->pubdate_epoch
    );
   foreach my $k (keys(%retval)) {
     delete $retval{$k} unless defined $retval{$k};
