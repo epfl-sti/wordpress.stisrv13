@@ -53,7 +53,6 @@ sub all {
   foreach my $dbic (STISRV13::Article->almost_all($schema)) {
     foreach my $lang ($dbic->languages) {
       my $elem = $class->new($dbic, $lang, $website_map);
-      # TODO: Weed out articles that are published in only one language
       push @results, $elem;
     }
   }
