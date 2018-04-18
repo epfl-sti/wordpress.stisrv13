@@ -26,6 +26,13 @@ use Lingua::Identify qw(langof);
 __PACKAGE__->table('rss');
 __PACKAGE__->add_columns(qw(rss_id author headline entete eng fra pubdate cible superstructure supertarget img imglink externallink alt view domain forward));
 
+sub almost_all {
+  my ($class, $schema) = @_;
+  # As per ssh://stisv13/home/websti/public_html/cgi-bin/newnews.pl,
+  # IDs <= 19 are tests.
+  return $schema->resultset('Article')->search({rss_id => {">=" => 20}});
+}
+
 sub pubdate_datetime {
   my ($self) = @_;
   my $pubdate_txt = $self->pubdate;
@@ -158,6 +165,9 @@ sub essentials {
     corp_author         => scalar $self->corp_author,
     pubdate             => $self->pubdate_epoch
    );
+  if ($retval{title} !~ m/\S/) {
+    delete $retval{title};
+  }
   foreach my $k (keys(%retval)) {
     delete $retval{$k} unless defined $retval{$k};
   }
