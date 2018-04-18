@@ -38,7 +38,9 @@ sub ancestries_sitemap {
 
 my @articles = Article->all($schema, $website_map);
 io("news-sitemap.yaml")->print(YAML::Dump(ancestries_sitemap(@articles)));
-io("news.json")->print(encode_json({articles => [map { $_->essentials } @articles]}));
+my $main_payload = { articles => [map { $_->essentials } @articles]};
+io("news.yaml")->print(YAML::Dump($main_payload));
+io("news.json")->print(encode_json($main_payload));
 
 ##############################################
 package Article;
