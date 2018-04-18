@@ -7,6 +7,7 @@ use strict;
 use autodie;
 
 use YAML;
+use JSON;
 use IO::All;
 use Text::CSV_XS qw(csv);
 
@@ -37,7 +38,7 @@ sub ancestries_sitemap {
 
 my @articles = Article->all($schema, $website_map);
 io("news-sitemap.yaml")->print(YAML::Dump(ancestries_sitemap(@articles)));
-io("news.yaml")->print(YAML::Dump([map { $_->essentials } @articles]));
+io("news.json")->print(encode_json({articles => [map { $_->essentials } @articles]}));
 
 ##############################################
 package Article;
