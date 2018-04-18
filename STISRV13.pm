@@ -13,9 +13,10 @@ sub _dumper_hook {
 package STISRV13::Article;
 
 use strict;
-use base qw(STISRV13::DatabaseRow);
 
 use STISRV13::Date;
+
+use base qw(STISRV13::DatabaseRow);
 
 use Debug::Statements;
 # Debug::Statements::setFlag('$STISRV13::Article::d'); our $d = 1;
@@ -185,7 +186,7 @@ sub connect {
   my $dsn = ($opts{-dsn} or 'DBI:mysql:database=stisrv13;host=127.0.0.1;port=3307');
   my $username = ($opts{-dsn} or 'root');
   my $password = $opts{-password};
-  return $class->SUPER::connect($dsn, $username, $password);
+  return $class->SUPER::connect($dsn, $username, $password, { mysql_enable_utf8 => 1});
 }
 
 1;
