@@ -117,7 +117,7 @@ sub corp_author {
 sub languages {
   my ($self) = @_;
 
-  my @langs = grep {length($self->body) > 10} (qw(en fr));
+  my @langs = grep {length($self->body($_)) > 10} (qw(en fr));
   return @langs unless (scalar(@langs) == 2);
 
   my $rss_id = $self->rss_id;

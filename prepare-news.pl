@@ -172,8 +172,10 @@ sub get_categories {
         push(@categories, "news");
       } elsif (m{(/cent(?:er|re)s)}) {
         push(@categories, "centers-$lang");
+      } elsif (m{(?:^| )(?:/it)} or m{/page-1767[.-]}) {
+        warn "Not keeping " . $self->moniker() . " as it appears under sti.epfl.ch/it";
       } else {
-        die "Don't know how to categorize this ancestry path: $path";
+        die "Don't know how to categorize this ancestry path: $path for " . $self->get_url();
       }
   }
 
