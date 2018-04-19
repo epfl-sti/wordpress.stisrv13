@@ -35,10 +35,12 @@ sub ancestries_sitemap {
 }
 
 my @articles = Article->all($schema, $website_map);
-io("news-sitemap.yaml")->utf8->print(YAML::Dump(ancestries_sitemap(@articles)));
+YAML::Dump(ancestries_sitemap(@articles)) > io("news-sitemap.yaml")->utf8;
 my $main_payload = { articles => [map { $_->essentials } @articles]};
-io("news.yaml")->utf8->print(YAML::Dump($main_payload));
-io("news.json")->binmode->print(encode_json($main_payload));
+YAML::Dump($main_payload) > io("news.yaml")->utf8;
+# Unlike encode_json, the OO version of JSON defaults to producing a
+# string of characters (not bytes):
+JSON->new->pretty->encode($main_payload) > io("news.json")->utf8;
 
 ##############################################
 package Article;
