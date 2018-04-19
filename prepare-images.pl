@@ -8,6 +8,15 @@ use autodie;
 
 use JSON;
 use IO::All;
+use IO::String;
+use Carp qw(croak);
+use Error qw(:try);
+
+use GD;
+
+use FindBin; use lib $FindBin::Dir;
+use HTTPGet;
+
 
 my $covershots_meta = decode_json(scalar io("covershots-meta.json")->slurp);
 
@@ -19,16 +28,24 @@ foreach $_ (sort keys %covershots) {
     my $local_file = io_local_image($rss_id);
     next if $local_file->exists;
     progress "GETting $rss_id from $url";
-    io($url) > $local_file;
+    get($url) > $local_file;
   } elsif (my ($url_left, $rss_id_left, $url_right, $rss_id_right) =
              m|<table[^<>]*><td><img src=(.*?left(\d+).png)></td><td><img src=(.*?right(\d+).png)></td></table>|) {
     warn "Frankenstein image: $rss_id_left vs. $rss_id_right", next unless $rss_id_left eq $rss_id_right;
     my $local_file = io_local_image($rss_id_left);
     next if $local_file->exists;
     progress "Stitching $rss_id_left from $url_left and $url_right";
-    my $stitched = stitch_images(
-      scalar(io($url_left)->get),
-      scalar(io($url_right)->get));
+    next unless my $stitched = try {
+      stitch_images(get($url_left), get($url_right));
+    } catch Error::Simple with {
+      $DB::single = 1;
+      warn "$rss_id_left: $@";
+      undef;
+    } except {
+      $DB::single = 1;
+      warn "$rss_id_left: $@";
+      undef;
+    };
     $stitched > $local_file;
   } else {
     die "Unable to parse covershot HTML\n$_\n";
@@ -45,10 +62,23 @@ sub progress {
 }
 
 sub stitch_images {
-  # TODO
-  # Of interest:
-  # https://stackoverflow.com/questions/9366158/merge-two-png-images-with-php-gd-library
-  # http://www.perlmonks.org/?node_id=896244
-  return "";
+  my ($left, $right) = map { new GD::Image($_) } @_;
+
+  # See http://www.perlmonks.org/?node_id=896244
+  my( $x_l, $y_l ) = $left->getBounds();
+  my( $x_r, $y_r ) = $right->getBounds();
+
+  croak "Frankenstein stitching attempted ($y_l vs. $y_r)" if ($y_l != $y_r);
+
+  my $stitched = new GD::Image($x_l + $x_r, $y_l);
+  $stitched->copy($left,
+                  0, 0,
+                  0, 0,
+                  $x_l, $y_l);
+  $stitched->copy($right,
+                  $x_l, 0,
+                  0, 0,
+                  $x_r, $y_r);
+  return $stitched->png;
 }
 
