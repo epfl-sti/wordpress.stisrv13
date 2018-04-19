@@ -9,10 +9,8 @@ use autodie;
 use YAML;
 use JSON;
 use IO::All;
-use Text::CSV_XS qw(csv);
 
 use FindBin qw($Dir);
-use Memoize;
 
 use FindBin qw($Dir); use lib $Dir;
 use STISRV13;
