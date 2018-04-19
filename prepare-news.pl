@@ -170,7 +170,7 @@ sub get_categories {
       } elsif (m{(?:^| )(?:/actu|/news)}) {
         push(@categories, "news");
       } elsif (m{(/cent(?:er|re)s)}) {
-        push(@categories, "centers-$lang");
+        push(@categories, "centres-news-$lang");
       } elsif (m{(?:^| )(?:/it)} or m{/page-1767[.-]}) {
         warn "Not keeping " . $self->moniker() . " as it appears under sti.epfl.ch/it";
       } else {
