@@ -164,7 +164,8 @@ sub essentials {
     webmaster_author    => scalar $self->webmaster_author,
     in_the_media_author => scalar $self->in_the_media_author,
     corp_author         => scalar $self->corp_author,
-    pubdate             => $self->pubdate_epoch
+    pubdate             => $self->pubdate_epoch,
+    covershot_alt       => $self->alt
    );
   if ($retval{title} !~ m/\S/) {
     delete $retval{title};
