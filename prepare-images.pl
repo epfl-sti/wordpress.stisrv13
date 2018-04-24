@@ -38,11 +38,9 @@ foreach $_ (sort keys %covershots) {
     next unless my $stitched = try {
       stitch_images(get($url_left), get($url_right));
     } catch Error::Simple with {
-      $DB::single = 1;
       warn "$rss_id_left: $@";
       undef;
     } except {
-      $DB::single = 1;
       warn "$rss_id_left: $@";
       undef;
     };
