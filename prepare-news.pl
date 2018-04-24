@@ -82,9 +82,9 @@ sub essentials {
   if (! $self->{essentials}) {
     $self->{essentials} = { %{$self->{dbic}->essentials($self->{lang})} };
     $self->{essentials}->{urls} = [$self->get_all_urls()];
-    if (my @categories = $self->get_categories()) {
-      $self->{essentials}->{categories} = \@categories;
-    }
+    my ($categories_arrayref, $tags_arrayref) = $self->get_categories_and_tags();
+    $self->{essentials}->{categories} = $categories_arrayref if $categories_arrayref;
+    $self->{essentials}->{tags}       = $tags_arrayref       if $tags_arrayref;
   }
 
   return $self->{essentials};
@@ -150,11 +150,11 @@ sub urls_and_ancestry_paths {
   return @retval;
 }
 
-sub get_categories {
+sub get_categories_and_tags {
   my ($self) = @_;
 
   my $lang = $self->lang;
-  my @categories;
+  my (@categories, @tags);
 
   my @urls_and_ancestry_paths = $self->urls_and_ancestry_paths();
   while(my (undef, $path) = splice(@urls_and_ancestry_paths, 0, 2)) {
@@ -178,8 +178,41 @@ sub get_categories {
       }
   }
 
+  my $cible = $self->cible;
+  if ($cible =~ m/\bMICROMX\b/ or $self->headline =~ m/^What is this/i) {
+    push @categories, "micromx-$lang";
+  }
+  if (my ($what, $where) = $cible =~ m/\b(?:(I|S)(EL|MX|GM||MT|BI))\b/) {
+    my $where_lc = lc($where);
+    push @categories, "i${where_lc}-news-${lang}";
+    my $drill_down_category;
+    if ($what eq "I") {
+      $drill_down_category = ($lang eq "fr") ? "recherche" : "research";
+    } else {
+      $drill_down_category = "education-$lang";
+    }
+    push @categories, "i${where_lc}-${drill_down_category}";
+    push @tags, "INST=$where";
+  }
+  if ($cible =~ m/microcity/) {
+    push @categories, "imt-microcity-$lang";
+  }
+
+  if ($cible =~ m/PHD/) {
+    push @tags, "LVL=PhD";
+  }
+
+  if ($cible =~ m/inthenews/) {
+    push @categories, ($lang eq "fr") ? "dans-la-presse" : "in-the-media";
+  }
+
+  my $author_sciper = $self->academic_author;
+  if ($author_sciper) {
+    push @tags, "ATTRIBUTION=$author_sciper";
+  }
+
   my %categories = map { $_ => 1 } @categories;
-  return sort keys %categories;
+  return ([sort keys %categories], \@tags);
 }
 
 # DBIx::Class::_Util freaks out when DESTROY is called twice, which it would
