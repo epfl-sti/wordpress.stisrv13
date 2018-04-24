@@ -36,7 +36,10 @@ sub ancestries_sitemap {
 
 my @articles = Article->all($schema, $website_map);
 YAML::Dump(ancestries_sitemap(@articles)) > io("news-sitemap.yaml")->utf8;
-my $main_payload = { articles => [map { $_->essentials } @articles]};
+my $main_payload = {
+  articles => [map { $_->essentials } @articles],
+  videos   => [Video->all($schema)]
+};
 YAML::Dump($main_payload) > io("news.yaml")->utf8;
 # Unlike encode_json, the OO version of JSON defaults to producing a
 # string of characters (not bytes):
@@ -218,3 +221,46 @@ sub get_categories_and_tags {
 # DBIx::Class::_Util freaks out when DESTROY is called twice, which it would
 # (through the delegate) if we didn't do this:
 sub DESTROY {}
+
+package Video;
+
+sub all {
+  my ($class, $schema) = @_;
+  my @results;
+  foreach my $profvideo (STISRV13::ProfVideo->all($schema)) {
+    my $results_count_before = @results;
+    if (my $youtube_id = $profvideo->videofra) {
+      push @results, {
+        lang       => "fr",
+        youtube_id => $youtube_id,
+        title      => scalar $profvideo->videotitlefr,
+        content    => scalar $profvideo->videotextfr,
+        categories => ["profs-videos-fr"],
+        tags       => ["ATTRIBUTION=" . $profvideo->sciper]
+      }
+    }
+    if (my $youtube_id = $profvideo->videoeng) {
+      push @results, {
+        lang       => "en",
+        youtube_id => $youtube_id,
+        title      => scalar $profvideo->videotitle,
+        content    => scalar $profvideo->videotext,
+        categories => ["profs-videos-en"],
+        tags       => ["ATTRIBUTION=" . $profvideo->sciper]
+      }
+    }
+    if (my $youtube_id = $profvideo->videoLH) {
+      push @results, {
+        youtube_id => $youtube_id,
+        categories => ["events-lilh"],
+        categories => ["profs-videos-en"],  # Just a guess, really
+        tags       => ["ATTRIBUTION=" . $profvideo->sciper]
+      }
+    }
+    if ($results_count_before == @results) {
+      die("Couldn't find any video out of SELECT [...] FROM profs WHERE sciper=" . $profvideo->sciper);
+    }
+  }
+  return @results;
+}
+

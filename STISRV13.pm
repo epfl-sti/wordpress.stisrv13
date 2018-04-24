@@ -1,5 +1,7 @@
 package STISRV13::DatabaseRow;
 
+use strict;
+
 use base qw/DBIx::Class::Core/;
 
 # http://search.cpan.org/~blblack/DBIx-Class-0.07006/lib/DBIx/Class/Manual/Cookbook.pod#Debugging_DBIx::Class_objects_with_Data::Dumper
@@ -11,8 +13,6 @@ sub _dumper_hook {
 }
 
 package STISRV13::Article;
-
-use strict;
 
 use STISRV13::Date;
 
@@ -176,11 +176,28 @@ sub essentials {
   return \%retval;
 }
 
+package STISRV13::ProfVideo;
+
+use base qw(STISRV13::DatabaseRow);
+
+__PACKAGE__->table('profs');
+__PACKAGE__->add_columns(qw(videoeng videofra videotext videotextfr videotitle videotitlefr videoLH sciper));
+
+sub all {
+  my ($class, $schema) = @_;
+  return $schema->resultset('ProfVideo')->search([
+    {videoeng => {"!=" => ""}},
+    {videofra => {"!=" => ""}},
+    {videoLH => {"!=" => ""}},
+    {videoLI => {"!=" => ""}}  # Although there are none of the latter
+   ]);
+}
+
 package STISRV13;
 
 use base qw(DBIx::Class::Schema);
 
-__PACKAGE__->load_classes(qw(Article));
+__PACKAGE__->load_classes(qw(Article ProfVideo));
 
 sub connect {
   my ($class, %opts) = @_;
