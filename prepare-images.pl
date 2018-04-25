@@ -36,7 +36,6 @@ my $schema = STISRV13->connect(-password => $secrets->{mysql_password});
 foreach my $rss (STISRV13::Article->almost_all($schema)) {
   my $rss_id = $rss->rss_id;
   next if $found{$rss_id};
-  next if ! $rss->languages;
 
   my $url = "http://stisrv13.epfl.ch/cgi-bin/newsatone.pl?id=$rss_id&lang=eng";
   progress "Looking up $url";

@@ -24,14 +24,22 @@ use Debug::Statements;
 use String::Similarity qw(similarity);
 use Lingua::Identify qw(langof);
 
+use constant MIN_BODY_SIZE => 10;
+
 __PACKAGE__->table('rss');
 __PACKAGE__->add_columns(qw(rss_id author headline entete eng fra pubdate cible superstructure supertarget img imglink externallink alt view domain forward));
 
 sub almost_all {
   my ($class, $schema) = @_;
-  # As per ssh://stisv13/home/websti/public_html/cgi-bin/newnews.pl,
-  # IDs <= 19 are tests.
-  return $schema->resultset('Article')->search({rss_id => {">=" => 20}});
+  return $schema->resultset('Article')->search({-and => [
+    # As per ssh://stisv13/home/websti/public_html/cgi-bin/newnews.pl,
+    # IDs <= 19 are tests.
+    {rss_id => {">=" => 20}},
+    [
+      \("LENGTH(eng) >= " . MIN_BODY_SIZE),
+      \("LENGTH(fra) >= " . MIN_BODY_SIZE),
+    ]
+  ]});
 }
 
 sub pubdate_datetime {
@@ -125,7 +133,7 @@ sub corp_author {
 sub languages {
   my ($self) = @_;
 
-  my @langs = grep {length($self->body($_)) > 10} (qw(en fr));
+  my @langs = grep {length($self->body($_)) >= MIN_BODY_SIZE} (qw(en fr));
   return @langs unless (scalar(@langs) == 2);
 
   my $rss_id = $self->rss_id;
