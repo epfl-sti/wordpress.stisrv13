@@ -226,6 +226,8 @@ sub DESTROY {}
 
 package Video;
 
+use utf8;  # For "Leçon d'honneur"
+
 sub all {
   my ($class, $schema) = @_;
   my @results;
@@ -236,8 +238,8 @@ sub all {
         lang       => "fr",
         youtube_id => $youtube_id,
         title      => scalar $profvideo->videotitlefr,
-        content    => scalar $profvideo->videotextfr,
-        categories => ["profs-videos-fr"],
+        body       => scalar $profvideo->videotextfr,
+        categories => ["lab-videos-fr"],
         tags       => ["ATTRIBUTION=" . $profvideo->sciper]
       }
     }
@@ -246,16 +248,16 @@ sub all {
         lang       => "en",
         youtube_id => $youtube_id,
         title      => scalar $profvideo->videotitle,
-        content    => scalar $profvideo->videotext,
-        categories => ["profs-videos-en"],
+        body       => scalar $profvideo->videotext,
+        categories => ["lab-videos-en"],
         tags       => ["ATTRIBUTION=" . $profvideo->sciper]
       }
     }
     if (my $youtube_id = $profvideo->videoLH) {
       push @results, {
         youtube_id => $youtube_id,
-        categories => ["events-lilh"],
-        categories => ["profs-videos-en"],  # Just a guess, really
+        title      => sprintf("Leçon d'honneur — %s", $profvideo->fullName),
+        categories => ["events-lilh", "memento-lilh"],      # Nondistinguished language
         tags       => ["ATTRIBUTION=" . $profvideo->sciper]
       }
     }

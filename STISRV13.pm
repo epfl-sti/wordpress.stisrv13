@@ -189,7 +189,12 @@ package STISRV13::ProfVideo;
 use base qw(STISRV13::DatabaseRow);
 
 __PACKAGE__->table('profs');
-__PACKAGE__->add_columns(qw(videoeng videofra videotext videotextfr videotitle videotitlefr videoLH sciper));
+__PACKAGE__->add_columns(qw(videoeng videofra videotext videotextfr videotitle videotitlefr videoLH sciper epflname firstname surname));
+
+sub fullName {
+  my ($self) = @_;
+  return $self->firstname . " " . ucfirst(lc($self->surname));
+}
 
 sub all {
   my ($class, $schema) = @_;
