@@ -200,7 +200,9 @@ sub get_categories_and_tags {
   if ($cible =~ m/microcity/) {
     push @categories, "imt-microcity-$lang";
   }
-
+  if ($cible =~m/centre/) {
+    push @categories, "centres-news-$lang";
+  }
   if ($cible =~ m/PHD/) {
     push @tags, "LVL=PhD";
   }
