@@ -238,7 +238,7 @@ sub all {
         lang       => "fr",
         youtube_id => $youtube_id,
         title      => scalar $profvideo->videotitlefr,
-        body       => scalar $profvideo->videotextfr,
+        body       => scalar $profvideo->videotextfr || " ",
         categories => ["lab-videos-fr"],
         tags       => ["ATTRIBUTION=" . $profvideo->sciper]
       }
@@ -248,7 +248,7 @@ sub all {
         lang       => "en",
         youtube_id => $youtube_id,
         title      => scalar $profvideo->videotitle,
-        body       => scalar $profvideo->videotext,
+        body       => scalar $profvideo->videotext || " ",
         categories => ["lab-videos-en"],
         tags       => ["ATTRIBUTION=" . $profvideo->sciper]
       }
