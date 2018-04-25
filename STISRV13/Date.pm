@@ -21,7 +21,7 @@ sub parse {
   my @blacklist = ("14:37, vendredi le 13 f&eacute;vrie");
   return if grep { $_ eq $date_str } @blacklist;
 
-  return $class->parse_strict($date_str);
+  return scalar $class->parse_strict($date_str);
 }
 
 sub parse_strict {

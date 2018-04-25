@@ -51,7 +51,7 @@ sub pubdate_datetime {
 sub pubdate_epoch {
   my ($self) = @_;
   return unless (my $pubdate = $self->pubdate_datetime());
-  return $pubdate->epoch;
+  return scalar $pubdate->epoch;
 }
 
 sub webmaster_author {
@@ -172,8 +172,8 @@ sub essentials {
     webmaster_author    => scalar $self->webmaster_author,
     in_the_media_author => scalar $self->in_the_media_author,
     corp_author         => scalar $self->corp_author,
-    pubdate             => $self->pubdate_epoch,
-    covershot_alt       => $self->alt
+    pubdate             => scalar $self->pubdate_epoch,
+    covershot_alt       => scalar $self->alt
    );
   if ($retval{title} !~ m/\S/) {
     delete $retval{title};
