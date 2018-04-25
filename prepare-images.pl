@@ -16,6 +16,8 @@ use GD;
 
 use FindBin; use lib $FindBin::Dir;
 use HTTPGet;
+use YAML;
+use STISRV13;
 
 
 my $covershots_meta = decode_json(scalar io("covershots-meta.json")->slurp);
@@ -23,31 +25,23 @@ my $covershots_meta = decode_json(scalar io("covershots-meta.json")->slurp);
 sub progress;
 
 my %covershots = map { $_ => 1 } (values %$covershots_meta);
-foreach $_ (sort keys %covershots) {
-  if (my ($url, $rss_id) = m/^<img src=(.*?left(\d+).png)>$/) {
-    my $local_file = io_local_image($rss_id);
-    next if $local_file->exists;
-    progress "GETting $rss_id from $url";
-    get($url) > $local_file;
-  } elsif (my ($url_left, $rss_id_left, $url_right, $rss_id_right) =
-             m|<table[^<>]*><td><img src=(.*?left(\d+).png)></td><td><img src=(.*?right(\d+).png)></td></table>|) {
-    warn "Frankenstein image: $rss_id_left vs. $rss_id_right", next unless $rss_id_left eq $rss_id_right;
-    my $local_file = io_local_image($rss_id_left);
-    next if $local_file->exists;
-    progress "Stitching $rss_id_left from $url_left and $url_right";
-    next unless my $stitched = try {
-      stitch_images(get($url_left), get($url_right));
-    } catch Error::Simple with {
-      warn "$rss_id_left: $@";
-      undef;
-    } except {
-      warn "$rss_id_left: $@";
-      undef;
-    };
-    $stitched > $local_file;
-  } else {
-    die "Unable to parse covershot HTML\n$_\n";
-  }
+my %found;
+foreach my $html_excerpt (sort keys %covershots) {
+  my $found = scrape_image($html_excerpt);
+  $found{$found} = 1 if $found;
+}
+
+my $secrets = YAML::LoadFile('./secrets.yaml');
+my $schema = STISRV13->connect(-password => $secrets->{mysql_password});
+foreach my $rss (STISRV13::Article->almost_all($schema)) {
+  my $rss_id = $rss->rss_id;
+  next if $found{$rss_id};
+  next if ! $rss->languages;
+
+  my $url = "http://stisrv13.epfl.ch/cgi-bin/newsatone.pl?id=$rss_id&lang=eng";
+  progress "Looking up $url";
+  my $html = io->https($url)->slurp;
+  scrape_image($html);
 }
 
 sub io_local_image {
@@ -57,6 +51,36 @@ sub io_local_image {
 
 sub progress {
   say @_
+}
+
+sub scrape_image {
+  local $_ = shift;
+  if (my ($url, $rss_id) = m/<img src=([^>]*?left(\d+).png)>/) {
+    my $local_file = io_local_image($rss_id);
+    return $rss_id if $local_file->exists;
+    progress "GETting $rss_id from $url";
+    get($url) > $local_file;
+  } elsif (my ($url_left, $rss_id_left, $url_right, $rss_id_right) =
+             m|<table[^<>]*><td><img src=([^>]*?left(\d+).png)></td><td><img src=([^>]*?right(\d+).png)></td></table>|) {
+    warn "Frankenstein image: $rss_id_left vs. $rss_id_right", next unless $rss_id_left eq $rss_id_right;
+    my $local_file = io_local_image($rss_id_left);
+    return $rss_id_left if $local_file->exists;
+    progress "Stitching $rss_id_left from $url_left and $url_right";
+    return unless my $stitched = try {
+      stitch_images(get($url_left), get($url_right));
+    } catch Error::Simple with {
+      warn "$rss_id_left: $@";
+      undef;
+    } except {
+      warn "$rss_id_left: $@";
+      undef;
+    };
+    $stitched > $local_file;
+    return $rss_id_left;
+  } else {
+    warn sprintf("Unable to parse covershot HTML (%d characters)\n", length($_));
+    return undef;
+  }
 }
 
 sub stitch_images {
