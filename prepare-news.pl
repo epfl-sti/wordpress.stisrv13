@@ -84,6 +84,7 @@ sub essentials {
   my $self = shift;
   if (! $self->{essentials}) {
     $self->{essentials} = { %{$self->{dbic}->essentials($self->{lang})} };
+    $self->{essentials}->{import_id} = "rss-" . $self->{essentials}->{rss_id};
     $self->{essentials}->{urls} = [$self->get_all_urls()];
     my ($categories_arrayref, $tags_arrayref) = $self->get_categories_and_tags();
     $self->{essentials}->{categories} = $categories_arrayref if $categories_arrayref;
@@ -232,33 +233,37 @@ sub all {
   my ($class, $schema) = @_;
   my @results;
   foreach my $profvideo (STISRV13::ProfVideo->all($schema)) {
+    my $sciper = $profvideo->sciper;
     my $results_count_before = @results;
     if (my $youtube_id = $profvideo->videofra) {
       push @results, {
         lang       => "fr",
+        import_id  => "videofra-$sciper",
         youtube_id => $youtube_id,
         title      => scalar $profvideo->videotitlefr,
         body       => scalar $profvideo->videotextfr || " ",
         categories => ["lab-videos-fr"],
-        tags       => ["ATTRIBUTION=" . $profvideo->sciper]
+        tags       => ["ATTRIBUTION=$sciper"]
       }
     }
     if (my $youtube_id = $profvideo->videoeng) {
       push @results, {
         lang       => "en",
+        import_id  => "videoen-$sciper",
         youtube_id => $youtube_id,
         title      => scalar $profvideo->videotitle,
         body       => scalar $profvideo->videotext || " ",
         categories => ["lab-videos-en"],
-        tags       => ["ATTRIBUTION=" . $profvideo->sciper]
+        tags       => ["ATTRIBUTION=$sciper"]
       }
     }
     if (my $youtube_id = $profvideo->videoLH) {
       push @results, {
+        import_id  => "videolh-$sciper",
         youtube_id => $youtube_id,
         title      => sprintf("Leçon d'honneur — %s", $profvideo->fullName),
         categories => ["events-lilh", "memento-lilh"],      # Nondistinguished language
-        tags       => ["ATTRIBUTION=" . $profvideo->sciper]
+        tags       => ["ATTRIBUTION=$sciper"]
       }
     }
     if ($results_count_before == @results) {
