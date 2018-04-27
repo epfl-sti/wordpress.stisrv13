@@ -16,6 +16,21 @@ use FindBin qw($Dir); use lib $Dir;
 use STISRV13;
 use WebsiteMap;
 
+use Docopt;
+
+=head1 NAME
+
+prepare-news.pl
+
+=head1 SYNOPSIS
+
+  prepare-news.pl [--videos-only]
+
+=cut
+
+our $opts = docopt();
+my $opt_videos_only = $opts->{"--videos-only"};
+
 my $secrets = YAML::LoadFile('./secrets.yaml');
 my $website_map = WebsiteMap->new(
   scalar(io('newsatone-meta.json')->slurp),
@@ -35,15 +50,19 @@ sub ancestries_sitemap {
 }
 
 my @articles = Article->all($schema, $website_map);
-YAML::Dump(ancestries_sitemap(@articles)) > io("news-sitemap.yaml")->utf8;
-my $main_payload = {
-  articles => [map { $_->essentials } @articles],
-  videos   => [map { $_->essentials } Video->all($schema)]
-};
-YAML::Dump($main_payload) > io("news.yaml")->utf8;
+unless ($opt_videos_only) {
+  YAML::Dump(ancestries_sitemap(@articles)) > io("news-sitemap.yaml")->utf8;
+}
+my $main_payload = {};
+
+$main_payload->{articles} = [map { $_->essentials } @articles] unless ($opt_videos_only);
+$main_payload->{videos}   = [map { $_->essentials } Video->all($schema)];
+
+my $outprefix = $opt_videos_only ? "news-videos-only" : "news";
+YAML::Dump($main_payload) > io("$outprefix.yaml")->utf8;
 # Unlike encode_json, the OO version of JSON defaults to producing a
 # string of characters (not bytes):
-JSON->new->pretty->encode($main_payload) > io("news.json")->utf8;
+JSON->new->pretty->encode($main_payload) > io("$outprefix.json")->utf8;
 
 ##############################################
 package Article;
