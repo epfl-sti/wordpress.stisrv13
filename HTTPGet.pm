@@ -25,7 +25,6 @@ use base 'Error::Simple';
 sub new {
   my $class = shift;
   my %opts = @_;
-  $DB::single = 1;
   my $self = Error::Simple->new("HTTP Error " . $opts{-status});
   $self->{$_} = $opts{$_} for qw(-url -status);
   return $self;
