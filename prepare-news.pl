@@ -38,7 +38,7 @@ my @articles = Article->all($schema, $website_map);
 YAML::Dump(ancestries_sitemap(@articles)) > io("news-sitemap.yaml")->utf8;
 my $main_payload = {
   articles => [map { $_->essentials } @articles],
-  videos   => [Video->all($schema)]
+  videos   => [map { $_->essentials } Video->all($schema)]
 };
 YAML::Dump($main_payload) > io("news.yaml")->utf8;
 # Unlike encode_json, the OO version of JSON defaults to producing a
@@ -225,18 +225,25 @@ sub get_categories_and_tags {
 # (through the delegate) if we didn't do this:
 sub DESTROY {}
 
-package Video;
+package Video;   #############################################################
 
-use utf8;  # For "Leçon d'honneur"
+use URI::Escape qw(uri_escape);
+use IO::All;
+use IO::All::HTTP;
+use JSON qw(decode_json);
+use DateTime::Format::ISO8601;
+
+use utf8;  # For "Leçon d'honneur" in the source code, below
 
 sub all {
   my ($class, $schema) = @_;
+
   my @results;
   foreach my $profvideo (STISRV13::ProfVideo->all($schema)) {
     my $sciper = $profvideo->sciper;
     my $results_count_before = @results;
     if (my $youtube_id = $profvideo->videofra) {
-      push @results, {
+      push @results, $class->new(
         lang       => "fr",
         import_id  => "videofra-$sciper",
         youtube_id => $youtube_id,
@@ -244,10 +251,10 @@ sub all {
         body       => scalar $profvideo->videotextfr || " ",
         categories => ["lab-videos-fr"],
         tags       => ["ATTRIBUTION=$sciper"]
-      }
+      );
     }
     if (my $youtube_id = $profvideo->videoeng) {
-      push @results, {
+      push @results, $class->new(
         lang       => "en",
         import_id  => "videoen-$sciper",
         youtube_id => $youtube_id,
@@ -255,16 +262,16 @@ sub all {
         body       => scalar $profvideo->videotext || " ",
         categories => ["lab-videos-en"],
         tags       => ["ATTRIBUTION=$sciper"]
-      }
+      );
     }
     if (my $youtube_id = $profvideo->videoLH) {
-      push @results, {
+      push @results, $class->new(
         import_id  => "videolh-$sciper",
         youtube_id => $youtube_id,
         title      => sprintf("Leçon d'honneur — %s", $profvideo->fullName),
         categories => ["events-lilh", "memento-lilh"],      # Nondistinguished language
         tags       => ["ATTRIBUTION=$sciper"]
-      }
+      )
     }
     if ($results_count_before == @results) {
       die("Couldn't find any video out of SELECT [...] FROM profs WHERE sciper=" . $profvideo->sciper);
@@ -273,3 +280,70 @@ sub all {
   return @results;
 }
 
+my %seen_ids;
+
+sub new {
+  my $class = shift;
+  my $self = bless {@_}, $class;
+  die unless my $id = $self->{youtube_id};
+  $seen_ids{$id}++;
+
+  if (10 <= keys %seen_ids) {
+    _do_load_api();
+    %seen_ids = ();
+  }
+  return $self;
+}
+
+my %youtube_snippets;
+use constant CACHE_FILE => "youtube-api-cache.yaml";
+our $loaded_from_cache;
+
+END {
+  unless ($loaded_from_cache || $?) {
+    YAML::Dump(\%youtube_snippets) > io(CACHE_FILE)->utf8;
+    warn sprintf("YouTube API results saved to %s\n", CACHE_FILE);
+  }
+}
+
+sub _do_load_api {
+  if ((! %youtube_snippets) && (-f CACHE_FILE)) {
+    warn sprintf("Loading YouTube API results from %s\n", CACHE_FILE);
+    %youtube_snippets = %{YAML::LoadFile('./secrets.yaml')};
+    $loaded_from_cache = 1;
+  }
+  return if (! %seen_ids);
+  my $snippets_json;
+  io->http(sprintf(
+    'https://www.googleapis.com/youtube/v3/videos?part=snippet&id=%s&key=%s',
+    uri_escape(join(',', keys %seen_ids)),
+    $secrets->{youtube_api_key})) > $snippets_json;
+
+  my $youtube_response = decode_json($snippets_json);
+  die "Wrong number of results" unless (
+    $youtube_response->{pageInfo}->{totalResults} == scalar keys %seen_ids);
+
+  foreach my $item (@{$youtube_response->{items}}) {
+    $youtube_snippets{$item->{id}} = $item;
+  }
+}
+
+sub youtube_snippet {
+  my ($self) = @_;
+  my $id = $self->{youtube_id};
+  _do_load_api() unless $youtube_snippets{$id};
+  return $youtube_snippets{$id}->{snippet};
+}
+
+sub essentials {
+  my ($self) = @_;
+  return {
+    %$self,
+    pubdate => scalar _zulu2epoch($self->youtube_snippet->{publishedAt})
+  };
+}
+
+sub _zulu2epoch {
+  my ($zulu) = @_;
+  return DateTime::Format::ISO8601->parse_datetime($zulu)->epoch;
+}
