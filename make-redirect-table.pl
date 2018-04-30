@@ -12,7 +12,7 @@ use URI;
 my $stisrv13_assets = YAML::LoadFile('./news.yaml');
 my %permalinks;
 
-foreach my $wordpress_asset (@{decode_json(io('./permalinks.json')->slurp)}) {
+foreach my $wordpress_asset (@{decode_json(io('./imported-permalinks.json')->slurp)}) {
   my $lang = $wordpress_asset->{lang} || "__nolang__";
   $permalinks{$wordpress_asset->{import_id}}->{$lang} = $wordpress_asset->{permalink};
 }
@@ -30,7 +30,7 @@ foreach my $article (@{$stisrv13_assets->{articles}}) {
   foreach my $lang (($article->{lang} || "__nolang__"), "__nolang__") {
     last if ($permalink = $permalinks{$import_id}->{$lang});
   }
-  do { warn "$import_id not found in permalinks.json\n"; next } unless $permalink;
+  do { warn "$import_id not found in imported-permalinks.json\n"; next } unless $permalink;
   foreach my $url (@{$article->{urls}}) {
     $csv->say(*STDOUT, [URI->new($url)->path, URI->new($permalink)->path]);
   }

@@ -4,7 +4,7 @@
 all: news.json images redirect.csv
 
 FROM_SCRAPER = newsatone-meta.json covershots-meta.json sti-website.gml
-FROM_WORDPRESS = permalinks.json
+FROM_WORDPRESS = imported-permalinks.json
 
 news.yaml news.json: prepare-news.pl $(FROM_SCRAPER)
 	./prepare-news.pl
@@ -16,5 +16,5 @@ images: prepare-images.pl covershots-meta.json
 	./prepare-images.pl
 	touch $@
 
-redirect.csv: make-redirect-table.pl news.yaml
+redirect.csv: make-redirect-table.pl news.yaml $(FROM_WORDPRESS)
 	./make-redirect-table.pl > $@
