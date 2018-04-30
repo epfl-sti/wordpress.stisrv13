@@ -233,7 +233,7 @@ sub get_categories_and_tags {
 
   my $author_sciper = $self->academic_author;
   if ($author_sciper) {
-    push @tags, "ATTRIBUTION=$author_sciper";
+    push @tags, "ATTRIBUTION=SCIPER:$author_sciper";
   }
 
   my %categories = map { $_ => 1 } @categories;
@@ -269,7 +269,7 @@ sub all {
         title      => scalar $profvideo->videotitlefr,
         body       => scalar $profvideo->videotextfr || " ",
         categories => ["lab-videos-fr"],
-        tags       => ["ATTRIBUTION=$sciper"]
+        tags       => ["ATTRIBUTION=SCIPER:$sciper"]
       );
     }
     if (my $youtube_id = $profvideo->videoeng) {
@@ -280,7 +280,7 @@ sub all {
         title      => scalar $profvideo->videotitle,
         body       => scalar $profvideo->videotext || " ",
         categories => ["lab-videos-en"],
-        tags       => ["ATTRIBUTION=$sciper"]
+        tags       => ["ATTRIBUTION=SCIPER:$sciper"]
       );
     }
     if (my $youtube_id = $profvideo->videoLH) {
@@ -289,7 +289,7 @@ sub all {
         youtube_id => $youtube_id,
         title      => sprintf("Leçon d'honneur — %s", $profvideo->fullName),
         categories => ["events-lilh", "memento-lilh"],      # Nondistinguished language
-        tags       => ["ATTRIBUTION=$sciper"]
+        tags       => ["ATTRIBUTION=SCIPER:$sciper"]
       )
     }
     if ($results_count_before == @results) {
