@@ -7,6 +7,7 @@ use IO::All;
 use Text::CSV_XS;
 use YAML;
 use JSON;
+use URI;
 
 my $stisrv13_assets = YAML::LoadFile('./news.yaml');
 my %permalinks;
@@ -27,6 +28,6 @@ foreach my $article (@{$stisrv13_assets->{articles}}) {
   do { warn "$import_id not found in permalinks.json\n"; next } unless (
     my $permalink = $permalinks{$import_id});
   foreach my $url (@{$article->{urls}}) {
-    $csv->say(*STDOUT, [$url, $permalink]);
+    $csv->say(*STDOUT, [URI->new($url)->path, URI->new($permalink)->path]);
   }
 }
