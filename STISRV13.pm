@@ -189,7 +189,8 @@ package STISRV13::ProfVideo;
 use base qw(STISRV13::DatabaseRow);
 
 __PACKAGE__->table('profs');
-__PACKAGE__->add_columns(qw(videoeng videofra videotext videotextfr videotitle videotitlefr videoLH sciper epflname firstname surname));
+__PACKAGE__->add_columns(qw(videoeng videofra videotext videotextfr videotitle videotitlefr videoLH epflname firstname surname));
+__PACKAGE__->add_columns(sciper => { accessor => '_sciper' });  # Overridden below
 
 sub fullName {
   my ($self) = @_;
@@ -204,6 +205,22 @@ sub all {
     {videoLH => {"!=" => ""}},
     {videoLI => {"!=" => ""}}  # Although there are none of the latter
    ]);
+}
+
+sub sciper {
+  my ($self) = @_;
+  my $sciper_in_db = $self->_sciper;
+  return $sciper_in_db if $sciper_in_db > 10000;
+  if ($self->epflname eq "herve.lissek") {
+    return 157878;
+  }
+  return undef;
+}
+
+sub check_sciper {
+  my ($self) = @_;
+  my $sciper = $self->sciper;
+  die("Bogus sciper: $sciper for " . $self->epflname) unless $sciper > 10000;
 }
 
 package STISRV13;

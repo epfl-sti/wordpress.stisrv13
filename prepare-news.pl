@@ -251,6 +251,7 @@ use IO::All;
 use IO::All::HTTP;
 use JSON qw(decode_json);
 use DateTime::Format::ISO8601;
+use warnings;
 
 use utf8;  # For "Leçon d'honneur" in the source code, below
 
@@ -262,6 +263,7 @@ sub all {
     my $sciper = $profvideo->sciper;
     my $results_count_before = @results;
     if (my $youtube_id = $profvideo->videofra) {
+      $profvideo->check_sciper();
       push @results, $class->new(
         lang       => "fr",
         import_id  => "videofra-$sciper",
@@ -273,6 +275,7 @@ sub all {
       );
     }
     if (my $youtube_id = $profvideo->videoeng) {
+      $profvideo->check_sciper();
       push @results, $class->new(
         lang       => "en",
         import_id  => "videoen-$sciper",
@@ -284,6 +287,7 @@ sub all {
       );
     }
     if (my $youtube_id = $profvideo->videoLH) {
+      $profvideo->check_sciper();
       push @results, $class->new(
         import_id  => "videolh-$sciper",
         youtube_id => $youtube_id,
