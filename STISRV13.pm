@@ -100,7 +100,7 @@ sub academic_author {
 
   m/^Aude Billard$/      && return 115671;
   m/^Auke Ijspeert/      && return 115955;
-  m/Vandevyver/          && return 138412;
+  # m/Vandevyver/          && return 138412;   # Dubious - The only article in this case is *not* by her
   m/^Dario/              && return 258955;
   m/Van De Ville/i       && return 152027;
   m/Farhad/              && return 106170;
