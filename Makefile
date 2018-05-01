@@ -5,8 +5,7 @@ all: news.json images redirect.csv
 
 FROM_SCRAPER = newsatone-meta.json covershots-meta.json sti-website.gml
 FROM_WORDPRESS = imported-permalinks.json
-PERL_DEPS    = STISRV13.pm STISRV13/Date.pm
-
+PERL_DEPS    = STISRV13.pm $(wildcard STISRV13/%.pm)
 news.yaml news.json: prepare-news.pl $(FROM_SCRAPER) $(PERL_DEPS)
 	./prepare-news.pl
 

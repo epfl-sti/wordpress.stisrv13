@@ -8,12 +8,12 @@ use autodie;
 
 use YAML;
 use JSON;
-use IO::All;
 
 use FindBin qw($Dir);
 
 use FindBin qw($Dir); use lib $Dir;
 use STISRV13;
+use STISRV13::IO qw(load_text load_secrets load_json save_yaml save_json);
 use WebsiteMap;
 
 use Docopt;
@@ -31,10 +31,10 @@ prepare-news.pl
 our $opts = docopt();
 my $opt_videos_only = $opts->{"--videos-only"};
 
-my $secrets = YAML::LoadFile('./secrets.yaml');
 my $website_map = WebsiteMap->new(
-  scalar(io('newsatone-meta.json')->slurp),
-  scalar(io('sti-website.gml')->slurp));
+  load_json('newsatone-meta.json'),
+  load_text('sti-website.gml'));
+my $secrets = load_secrets();
 my $schema = STISRV13->connect(-password => $secrets->{mysql_password});
 
 sub ancestries_sitemap {
@@ -51,7 +51,7 @@ sub ancestries_sitemap {
 
 my @articles = Article->all($schema, $website_map);
 unless ($opt_videos_only) {
-  YAML::Dump(ancestries_sitemap(@articles)) > io("news-sitemap.yaml")->utf8;
+  save_yaml("news-sitemap.yaml", ancestries_sitemap(@articles));
 }
 my $main_payload = {};
 
@@ -59,10 +59,8 @@ $main_payload->{articles} = [map { $_->essentials } @articles] unless ($opt_vide
 $main_payload->{videos}   = [map { $_->essentials } Video->all($schema)];
 
 my $outprefix = $opt_videos_only ? "news-videos-only" : "news";
-YAML::Dump($main_payload) > io("$outprefix.yaml")->utf8;
-# Unlike encode_json, the OO version of JSON defaults to producing a
-# string of characters (not bytes):
-JSON->new->pretty->encode($main_payload) > io("$outprefix.json")->utf8;
+save_yaml("$outprefix.yaml", $main_payload);
+save_json("$outprefix.json", $main_payload);
 
 ##############################################
 package Article;
@@ -253,6 +251,8 @@ use JSON qw(decode_json);
 use DateTime::Format::ISO8601;
 use warnings;
 
+use STISRV13::IO qw(load_yaml save_yaml);
+
 use utf8;  # For "Leçon d'honneur" in the source code, below
 
 sub all {
@@ -324,7 +324,7 @@ our $loaded_from_cache;
 
 END {
   unless ($loaded_from_cache || $?) {
-    YAML::Dump(\%youtube_snippets) > io(CACHE_FILE)->utf8;
+    save_yaml(CACHE_FILE, \%youtube_snippets);
     warn sprintf("YouTube API results saved to %s\n", CACHE_FILE);
   }
 }
@@ -332,7 +332,7 @@ END {
 sub _do_load_api {
   if ((! %youtube_snippets) && (-f CACHE_FILE)) {
     warn sprintf("Loading YouTube API results from %s\n", CACHE_FILE);
-    %youtube_snippets = %{YAML::LoadFile('./secrets.yaml')};
+    %youtube_snippets = %{load_yaml(CACHE_FILE)};
     $loaded_from_cache = 1;
   }
   return if (! %seen_ids);

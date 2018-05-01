@@ -6,9 +6,7 @@ use warnings;
 use strict;
 use autodie;
 
-use JSON;
 use IO::All;
-use IO::String;
 use Carp qw(croak);
 use Error qw(:try);
 
@@ -18,9 +16,10 @@ use FindBin; use lib $FindBin::Dir;
 use HTTPGet;
 use YAML;
 use STISRV13;
+use STISRV13::IO qw(load_secrets io_local_image load_json);
 
 
-my $covershots_meta = decode_json(scalar io("covershots-meta.json")->slurp);
+my $covershots_meta = load_json("covershots-meta.json");
 
 sub progress;
 
@@ -31,7 +30,7 @@ foreach my $html_excerpt (sort keys %covershots) {
   $found{$found} = 1 if $found;
 }
 
-my $secrets = YAML::LoadFile('./secrets.yaml');
+my $secrets = load_secrets;
 my $schema = STISRV13->connect(-password => $secrets->{mysql_password});
 foreach my $rss (STISRV13::Article->almost_all($schema)) {
   my $rss_id = $rss->rss_id;
@@ -41,11 +40,6 @@ foreach my $rss (STISRV13::Article->almost_all($schema)) {
   progress "Looking up $url";
   my $html = io->https($url)->slurp;
   scrape_image($html);
-}
-
-sub io_local_image {
-  my ($rss_id) = @_;
-  return io->file("images/$rss_id.png");
 }
 
 sub progress {

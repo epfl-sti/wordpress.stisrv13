@@ -7,10 +7,10 @@ use Benchmark qw(timeit timestr);
 use GML;
 
 sub new {
-  my ($class, $newsatone_json, $website_gml) = @_;
+  my ($class, $newsatone_meta, $website_gml) = @_;
 
   return bless {
-    newsatone_meta => decode_json($newsatone_json),
+    newsatone_meta => $newsatone_meta,
     website_gml    => $website_gml
   }, $class;
 }
