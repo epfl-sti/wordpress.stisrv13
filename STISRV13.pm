@@ -78,9 +78,15 @@ sub webmaster_author {
   m/\wRauss\w/     && return "rauss";
   m/^Sandy\w/      && return "cmundwil";  # Santy Evangelista
   m/^Sarah Perrin/ && return "sperrin";
+  m/Sanctuary|^Hillary$/ && return "hsanctua";
+  m/^Nik\b/i             && return "npapageo";  # Nik Papageorgiou
+  m/Patrick Mayor/       && return 111483;
 
   # Research Office
   m/Patricia Marti-Rochat/ && return "pamarti";
+
+  # Other
+  m/Patrick Mayor/       && return "pmayor";    # Scientific writer @ NANO-TERA
 
   return;
 }
@@ -99,11 +105,8 @@ sub academic_author {
   m/Van De Ville/i       && return 152027;
   m/Farhad/              && return 106170;
   m/Bleuler/             && return 104561;
-  m/Sanctuary|^Hillary$/ && return 131093;
   m/^Nanni$/             && return 167918;  # Giovanni de Micheli
   m/^Nanolab/i           && return 122431;  # Mihut Ionescu
-  m/^Nik\b/i             && return 234623;  # Nik Papageorgiou
-  m/Patrick Mayor/       && return 111483;
   m/\wpv-lab\w/i         && return 100192;  # Christophe Ballif
   m/Samuel Zimmermann/   && return 244428;
 
