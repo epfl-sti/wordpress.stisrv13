@@ -7,16 +7,18 @@ use strict;
 use autodie;
 
 use IO::All;
+use File::Basename qw(basename);
+use URI;
 use Carp qw(croak);
 use Error qw(:try);
 
 use GD;
 
 use FindBin; use lib $FindBin::Dir;
-use HTTPGet;
+use File::Type;
 use YAML;
 use STISRV13;
-use STISRV13::IO qw(load_secrets io_local_image load_json);
+use STISRV13::IO qw(load_secrets io_local_image load_json save_json);
 
 
 my $covershots_meta = load_json("covershots-meta.json");
@@ -26,9 +28,10 @@ sub progress;
 my %covershots = map { $_ => 1 } (values %$covershots_meta);
 my %found;
 foreach my $html_excerpt (sort keys %covershots) {
-  my $found = scrape_image($html_excerpt);
+  my $found = scrape_covershot($html_excerpt);
   $found{$found} = 1 if $found;
 }
+my @stock_images;
 
 my $secrets = load_secrets;
 my $schema = STISRV13->connect(-password => $secrets->{mysql_password});
@@ -39,24 +42,39 @@ foreach my $rss (STISRV13::Article->almost_all($schema)) {
   my $url = "http://stisrv13.epfl.ch/cgi-bin/newsatone.pl?id=$rss_id&lang=eng";
   progress "Looking up $url";
   my $html = io->https($url)->slurp;
-  scrape_image($html);
+  next if scrape_covershot($html);
+
+  # Fall back on a "stock" image i.e. one that stisrv13.php will *not*
+  # automatically pick up from the sideloaded material (instead it
+  # will need to be told to do so, via stock-images.json)
+  if (($url = $rss->img) && (my $shortname = scrape_stock_image($url))) {
+    push @stock_images, {
+      import_id => "rss-$rss_id",
+      filename  => $shortname
+    };
+    next;
+  }
+
+  warn "No image could be found for $rss_id\n";
 }
+
+save_json("stock-images.json", {stock_images => \@stock_images});
 
 sub progress {
   say @_
 }
 
-sub scrape_image {
+sub scrape_covershot {
   local $_ = shift;
   if (my ($url, $rss_id) = m/<img src=([^>]*?left(\d+).png)>/) {
-    my $local_file = io_local_image($rss_id);
+    my $local_file = io_local_image("${rss_id}.png");
     return $rss_id if $local_file->exists;
     progress "GETting $rss_id from $url";
     get($url) > $local_file;
   } elsif (my ($url_left, $rss_id_left, $url_right, $rss_id_right) =
              m|<table[^<>]*><td><img src=([^>]*?left(\d+).png)></td><td><img src=([^>]*?right(\d+).png)></td></table>|) {
     warn "Frankenstein image: $rss_id_left vs. $rss_id_right", next unless $rss_id_left eq $rss_id_right;
-    my $local_file = io_local_image($rss_id_left);
+    my $local_file = io_local_image("${rss_id_left}.png");
     return $rss_id_left if $local_file->exists;
     progress "Stitching $rss_id_left from $url_left and $url_right";
     return unless my $stitched = try {
@@ -72,7 +90,7 @@ sub scrape_image {
     return $rss_id_left;
   } else {
     warn sprintf("Unable to parse covershot HTML (%d characters)\n", length($_));
-    return undef;
+    return;
   }
 }
 
@@ -97,3 +115,23 @@ sub stitch_images {
   return $stitched->png;
 }
 
+sub scrape_stock_image {
+  my ($url) = @_;
+  my $basename = basename(URI->new($url)->path);
+  my $contents; $contents < io->https($url);
+  unless($basename =~ m/\.(jpeg|jpg|png)$/i) {
+    my $sniffed_type = File::Type->new()->checktype_contents($contents);
+    if ($sniffed_type eq "image/jpeg") {
+      $basename .= "_.jpg";   # Use the underscore to be sure to avoid any like-named file
+    } elsif ($sniffed_type eq "image/png") {
+      $basename .= "_.png";   # Ditto
+    } else {
+      die "Sniffed an unknown MIME type at $url: $sniffed_type\n";
+    }
+  };
+  my $stock_image = io_local_image($basename);
+  unless ($stock_image->exists) {
+    $contents > $stock_image;
+  }
+  return $basename;
+}

@@ -12,7 +12,7 @@ news.yaml news.json: prepare-news.pl $(FROM_SCRAPER) $(PERL_DEPS)
 news-videos-only.yaml news-videos-only.json: prepare-news.pl $(FROM_SCRAPER) $(PERL_DEPS)
 	./prepare-news.pl --videos-only
 
-images: prepare-images.pl covershots-meta.json $(PERL_DEPS)
+images stock-images.json: prepare-images.pl covershots-meta.json $(PERL_DEPS)
 	./prepare-images.pl
 	touch $@
 
