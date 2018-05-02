@@ -11,7 +11,7 @@ use File::Basename qw(basename);
 use URI;
 use Carp qw(croak);
 use Error qw(:try);
-
+use Docopt;
 use GD;
 
 use FindBin; use lib $FindBin::Dir;
@@ -20,6 +20,18 @@ use YAML;
 use STISRV13;
 use STISRV13::IO qw(load_secrets io_local_image load_json save_json);
 
+
+=head1 NAME
+
+prepare-images.pl
+
+=head1 SYNOPSIS
+
+  prepare-images.pl [ --offline ]
+
+=cut
+
+our $opts = do { local $^W; docopt(); };
 
 my $covershots_meta = load_json("covershots-meta.json");
 
@@ -118,6 +130,7 @@ sub stitch_images {
 sub scrape_stock_image {
   my ($url) = @_;
   my $basename = basename(URI->new($url)->path);
+  return $basename if ($opts->{'--offline'});
   my $contents; $contents < io->https($url);
   unless($basename =~ m/\.(jpeg|jpg|png)$/i) {
     my $sniffed_type = File::Type->new()->checktype_contents($contents);
