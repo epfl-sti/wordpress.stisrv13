@@ -61,8 +61,9 @@ foreach my $rss (STISRV13::Article->almost_all($schema)) {
   # will need to be told to do so, via stock-images.json)
   if (($url = $rss->img) && (my $shortname = scrape_stock_image($url))) {
     my $stock_record = {
-      import_id => "rss-$rss_id",
-      filename  => $shortname,
+      url        => $url,
+      article_id => "rss-$rss_id",
+      filename   => $shortname,
     };
     if (my $desc = scalar $rss->alt) {
       $stock_record->{desc} = $desc;
